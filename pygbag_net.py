@@ -186,6 +186,10 @@ class Node:
         # default is take over channel (operator)
         self.fork = -1
 
+        # default is not network operator
+        self.oper = False
+
+
     async def connect(self, host):
         self.peek = []
         async with aio_sock(host, "a+", 5) as sock:
@@ -239,7 +243,7 @@ class Node:
         if self.fork < 0:
             self.fork = 0
             self.wire(f"JOIN #pygbag-{self.gid}")
-            self.topic_todo.append([f"#pygbag-{self.gid}", self.groupname.replace(" ", "_")])
+            self.topic_todo.append([f"#pygbag-{self.gid}", self.groups[self.gid]['name']])
 
         # autopublish is broken
         #            self.publish()
@@ -296,8 +300,22 @@ class Node:
             return False
 
         if not self.topics[self.lobby_channel]:
-            todo = [self.lobby_channel, self.lobby_topic.replace(" ", "_")]
+            todo = [self.lobby_channel, self.lobby_topic]
             self.topic_todo.append(todo)
+
+
+    def do_topic(self, oper=False):
+        todel = []
+        for idx, todo in enumerate(self.topic_todo):
+            if self.joined == todo[0]:
+                if (not self.topics[self.joined]) or oper:
+                    send = f"TOPIC {todo[0]} :{todo[1]}"
+                    print("sent topic:", send)
+                    self.wire(send)
+                todel.append(idx)
+        while len(todel):
+            self.topic_todo.pop(todel.pop())
+
 
     # motd join userlist ping pong
 
@@ -335,17 +353,7 @@ class Node:
 
         if cmd.find(" 366 ") > 0:
             self.check_topic()
-            todel = []
-            for idx, todo in enumerate(self.topic_todo):
-                if self.joined == todo[0]:
-                    if not self.topics[self.joined]:
-                        send = f"TOPIC {todo[0]} {todo[1]}"
-                        print("sent topic:", send)
-                        self.wire(send)
-                    todel.append(idx)
-            while len(todel):
-                self.topic_todo.pop(todel.pop())
-
+            self.do_topic()
             yield self.USERLIST
             return self.discard()
 
@@ -587,3 +595,4 @@ class Node:
 if __name__ == "__main__":
     from pygbag_net_minimal import main
     asyncio.run(main())
+    
