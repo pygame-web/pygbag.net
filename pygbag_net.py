@@ -145,7 +145,8 @@ class Node:
 
     # initial process is pygbag lobby chat.
     gid = 0
-    groupname = "Lobby"
+    groups = { 0 : { 'name' : "Lobby" } }
+
 
     pstree = {}
 
@@ -153,7 +154,8 @@ class Node:
         self.aiosock = None
 
         self.gid = gid or self.gid
-        self.groupname = groupname or self.groupname
+        self.groupname = groupname or self.groups[self.gid]['name']
+        self.groups.setdefault(self.gid, {'name':self.groupname} )
 
         self.users = {}
 
@@ -449,7 +451,7 @@ class Node:
                 if line.startswith("0:"):
                     _, pid, msgtype, data = line.split(":", 3)
 
-                    # ND rpid could be different from payload pid in case of message relaying
+                    # NB: rpid could be different from payload pid in case of message relaying
                     # on a mesh.
                     # rpid = int(pid)
                     try:
@@ -470,7 +472,7 @@ class Node:
             if line.startswith(game):
                 _, pid, msgtype, data = line.split(":", 3)
 
-                # ND rpid could be different from payload pid in case of message relaying
+                # NB rpid could be different from payload pid in case of message relaying
                 # on a mesh.
                 # rpid = int(pid)
                 try:
